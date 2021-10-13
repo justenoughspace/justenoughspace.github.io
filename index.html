@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -46,7 +47,7 @@
 		button {
 			height: 40px;
 			position: absolute;
-			top: 650px;
+			top: 750px;
 			width: 100px;
 		}
 
@@ -61,7 +62,7 @@
 		}
 
 		path {
-			fill: #444;
+			opacity: 50%;
 		}
 
 		#mapLegend {
@@ -70,7 +71,7 @@
 			border: 3px solid #444;
 			height: 100px;
 			width: 120px;
-			top: 725px;
+			top: 800px;
 			left: 275px;
 		}
 		#genderLegend {
@@ -79,7 +80,7 @@
 			border: 3px solid #444;
 			height: 100px;
 			width: 120px;
-			top: 725px;
+			top: 800px;
 			left: 425px;
 		}
 		#ageLegend {
@@ -88,20 +89,41 @@
 			border: 3px solid #444;
 			height: 150px;
 			width: 120px;
-			top: 725px;
+			top: 800px;
 			left: 575px;
+		}
+
+		.maleLineDeath {
+			fill:#03c6fc;
+			opacity: 50
+		}
+		.femaleLineDeath {
+			fill:#e703fc;
+			opacity: 50%
+		}
+
+		.streetName {
+			font-size: 10px;
+		}
+
+		#soho {
+			font-size: 20px;
+			font-weight: 800;
 		}
 		
 
 	</style>
 </head>
 <body>
-		<h1 style="display:flex; justify-content: center;">John Snow Cholera Map</h1>
-		<h2 style="display:flex; justify-content: center;">John Snow Cholera Map</h2>
+	<a href="https://docs.google.com/document/d/1UMVWXcfFVdLccNNJ_wNFj_Uwm1KtAJCDJucJI1dXFHk/edit?usp=sharing">Documentation</a>
+		<h1 style="display:flex; justify-content: center; color: #444444">John Snow Cholera Map</h1>
+		<h2 style="display:flex; justify-content: center; text-align: center; color: #444444">One of the most important visualizations in history, John Snow's visualization was not only revolutionary <br> in the world of data science, but it also saved lives.
+		He did all of this despite not having access to the tools that we have access to today. <br>
+		Even with these tools, it will be a rare feat for one to accomplish what Snow did in his time.</h2>
 		<div style="display: flex; justify-content: center;">
 		<svg class="choleraMap" height="500" width="500">
 		</svg>
-		<svg id="graph" width="49%" height="500" width="500">
+		<svg class="graph"  height="550" width="500">
 		</svg>
 		<button id="button_1" onClick="showGender()">Show Gender</button>
 		<button id="button_2" onClick="displayAge()">Show Ages</button>
@@ -129,18 +151,17 @@
 	
 	<script>
 		const choleraMap = d3.select(".choleraMap");
-		let scaleX = d3.scale.linear();
-		let scaleY = d3.scale.linear();
 		const MAP_WIDTH = 500;
 		const MAP_HEIGHT = 500;
+		const minimum_death = 0;
+		const deathCount = []
 		var deaths = [];
 		var deathDays = [];
-		let graph = d3.select("svg#graph");
+		let deathGraph = d3.select(".graph");
 		let graphWidth = 500;
 		let graphHeight = 500;
-		let padding = 30;
-		let graphXScale = d3.scale.linear();
-		let graphYScale = d3.scale.linear();
+		let svg_female = {};
+		let svg = d3.select('body').append('svg.graph')
 		var createLine = d3.svg.line()
 		
 		
@@ -173,9 +194,37 @@
 			}
 		];
 		
+		let scaleX = d3.scale.linear();
+		let scaleY = d3.scale.linear();
+		let xScaleForGraph = d3.scale.linear();
+		let yScaleForGraph = d3.scale.linear();
+		
 
 		scaleX.domain([3,20]).range([0, MAP_WIDTH]);
 		scaleY.domain([3,20]).range([MAP_HEIGHT, 0]);
+
+		function drawGraph() {
+			let x = d3.svg.axis()
+				.orient('bottom')
+				.scale(xScaleForGraph)
+				.tickFormat(function(d) {
+					return deathDays[d].date;
+				});
+
+			let y = d3.svg.axis()
+			.orient('left')
+				.scale(yScaleForGraph)
+
+			deathGraph.append('g')
+				.attr('class', 'axis')
+				.attr('transform', 'translate(0, 475)')
+				.call(x);
+
+			deathGraph.append('g')
+				.attr('class', 'axis')
+				.attr('transform', 'translate(30)')
+				.call(y);
+			}
 
 	//Set up functions that will help create map
 		const mapSetup = d3.svg.line()
@@ -195,6 +244,7 @@
           }
         );
       }
+			
   // Load pump data and push it into the empty pump array to be read later in the function putting them on the map    
       });
     d3.csv("pumps.csv", function(data) {
@@ -226,7 +276,6 @@
 
 	//Add circles to the map representing each death in the death array
     function addDeathsToMap() {
-			console.log('death', deathDays)
 			choleraMap.selectAll('.death')
 				.data(deaths)
 				.enter()
@@ -258,10 +307,9 @@
 			}
 			addDeathsToMap();
 			addPumpsToMap();
-			drawDeathsGraph()
+			// drawDeathsGraph()
 		});
     
-	// //Add pumps
 	function addPumpsToMap() {
 		choleraMap.selectAll('.pump')
 				.data(pumps)
@@ -275,17 +323,62 @@
 		}
 
 		function handleMouseOver() {
-			d3.select("body").append("div")
-     .attr("class", "yowza")
+			choleraMap.selectAll('.death')
+     	.append('rect')
+			 .attr('width', 10)
+			 .attr('height', 10)
+			 .attr('fill', )
 		}
+
+		choleraMap.append("text")
+  			.attr("class", "streetName")
+  			.attr("transform", "translate(150,200) rotate(-21)")
+  			.text("Great Marlborough Street");
+
+		choleraMap.append("text")
+  			.attr("class", "streetName")
+  			.attr("transform", "translate(150,115) rotate(-10)")
+  			.text("Oxford Street");
+
+		choleraMap.append("text")
+  			.attr("class", "streetName")
+  			.attr("transform", "translate(200,205) rotate(-10)")
+  			.text("Workhouse");
+
+		choleraMap.append("text")
+  			.attr("class", "streetName")
+  			.attr("transform", "translate(250,255) rotate(-25)")
+				.attr("z-index", "1000")
+  			.text("Broad Street");
+		choleraMap.append("text")
+  			.attr("id", "soho")
+  			.attr("transform", "translate(400,155) rotate(-25)")
+				.attr("z-index", "1000")
+  			.text("SOHO");
 
 		function showGender() {
 			choleraMap.selectAll('[data-gender="male"]').attr('fill','#03c6fc');
 			choleraMap.selectAll('[data-gender="female"]').attr('fill','#e703fc');
-		}
+			createLine
+				.x(function(d) { return xScaleForGraph(d.day); })
+				.y(function(d) { return yScaleForGraph(d.male); });
+
+			deathGraph.append('path')
+				.attr('d', createLine(deathDays))
+				.attr("class", "maleLineDeath")
+			
+			createLine
+				.x(function(d) { return xScaleForGraph(d.day); })
+				.y(function(d) { return yScaleForGraph(d.female); });
+
+			deathGraph.append('path')
+				.attr('d', createLine(deathDays))
+				.attr("class", "femaleLineDeath")
+			}	
+		
 
 		function clearStyle() {
-				choleraMap.selectAll('#death').attr('fill', '#FF0033')
+				location.reload();
 		}
 
 		function displayAge() {
@@ -293,132 +386,96 @@
 				choleraMap.selectAll('.age' + i)
 					.attr('fill', ages[i].fill);
 			}
+			for (let i=0; i < ages.length; i++) {
+				let createLine = d3.svg.line()
+					.x(function(d) { return xScaleForGraph(d.day); })
+					.y(function(d) { return yScaleForGraph(d.age[i]); });
+
+				deathGraph.append('path')
+					.attr('id', 'graphlineage' + i)
+					.attr('d', createLine(deathDays));
+
+					for (let i=0; i < ages.length; i++) {
+						deathGraph.select('#graphlineage' + i)
+					.attr('fill', ages[i].fill);
+
+			}
 		}
+			}
+		
 
-//Draw the overall structure of the graph.
-function drawDeathsGraphLines() {
+
+		function drawDeath() {
 				createLine
-				.x(function(d) { return graphXScale(d.day); })
-				.y(function(d) { return graphYScale(d.total); });
+				.x(function(d) { return xScaleForGraph(d.day); })
+				.y(function(d) { return yScaleForGraph(d.total); });
 
-			graph.append('path')
-				.attr('d', createLine(deathDays));
+			deathGraph.append('path')
+				.attr('d', createLine(deathDays))
+				.on("mouseover", handleMouseOver)
 			}	
 
-	var svg = d3.select("svg"),
-	margin = 200,
-	width = svg.attr("width") - margin,
-	height = svg.attr("height") - margin
-	var xScale = d3.scaleBand().range([0, width]).padding(0.4),
-						yScale = d3.scaleLinear().range([height, 0]);
 
-	var g = svg.append("g")
-	.attr('transform', "translate(" + 100 + "," + 100 + ")");
+		function drawGraph() {
+		let x = d3.svg.axis()
+			.orient('bottom')
+			.scale(xScaleForGraph)
+			.tickFormat(function(d) {
+				return deathDays[d].date;
+			});
 
-	d3.csv("deathDays.csv", function(error, data) {
-		if (error) {
-			throw error
+		let y = d3.svg.axis()
+		.orient('left')
+			.scale(yScaleForGraph)
+
+		deathGraph.append('g')
+			.attr('class', 'axis')
+			.attr('transform', 'translate(0, 475)')
+			.call(x);
+
+		deathGraph.append('g')
+			.attr('class', 'axis')
+			.attr('transform', 'translate(30)')
+			.call(y);
 		}
-		xScale.domain(data.map(function(d) {return d.date}));
-		yScale.domain([0, d3.max(data, function(d) {return d.deaths})]);
 
-		g.append("g")
-		.attr("transform", "translate(0," + height + ")")
-		.call(d3.axisBottom(xScale));
+		d3.csv("deathdays.csv", function(data) {
+		let deathId = 0;
+		for (let day = 0; day < data.length; day++) {
+			let totalCount = +data[day].deaths;
+			let men = 0;
+			let women = 0;
+			let ageCount = [0,0,0,0,0,0];
+			for (let i=0; i < totalCount; i++) {
+				if (deaths[deathId].gender == "male") {
+					men++;
+				} else {
+					women++;
+				}
+				ageCount[deaths[deathId].age]++;
+				deathId++;
+			}	
+			deathDays.push ({
+				day: day,
+				date: data[day].date,
+				total: totalCount,
+				male: men,
+				female: women,
+				age: ageCount
+			});
+			
+		}
 
-		g.append("g")
-		.call(d3.axisLeft(yScale).tickFormat(function(d) {
-			return d
-		}).ticks(10))
-	
-
-	g.selectAll(".bar")
-	.data(data)
-	.enter().append("rect")
-	.attr("class", "bar")
-	.attr("x", function(d) { return xScale(d.date)})
-	.attr("y", function(d) { return yScale(d.value)})
-	.attr("width", xScale.bandwidth())
-	.attr("height", function(d) {return height - yScale(d.deaths)})
-})
-
-// function drawDeathsGraph() {
-	
-
-// let xAxis = d3.svg.axis()
-// 	.scale(graphXScale)
-// 	.orient('bottom')
-// 	.tickFormat(function(d) {
-// 		return deathDays[d].deathdate;
-// 	});
-
-// let yAxis = d3.svg.axis()
-// 	.scale(graphYScale)
-// 	.orient('left');
-
-// graph.append('g')
-// 	.attr('class', 'axis')
-// 	.attr('transform', 'translate(0,' + (graphHeight - padding) + ')')
-// 	.call(xAxis);
-
-// graph.append('g')
-// 	.attr('class', 'axis')
-// 	.attr('transform', 'translate(' + padding + ',0)')
-// 	.call(yAxis);
-// }
-
-// 		d3.csv("deathdays.csv", function(data) {
-// 					let deathId = 0;
-// 					for (let day = 0; day < data.length; day++) {
+		xScaleForGraph.domain([0, 41])
+			.range([30, 500]);
+			yScaleForGraph.domain([0, 160])
+			.range([475, 10]);
+			
+		addDeathsToMap();
+		drawDeath();
+		drawGraph();
 					
-// 						let totalCount = +data[day].deaths;
-// 						let maleCount = 0;
-// 						let femaleCount = 0;
-// 						let ageCount = [0,0,0,0,0,0];
-						
-						
-						
-// 						for (let i=0; i < totalCount; i++) {
-// 							// Update the individual death records with the day
-// 							// and date of death.
-// 							deaths[deathId].deathday = day;
-// 							deaths[deathId].deathdate = data[day].date;
-							
-// 							// Count the deaths on each deathDay by demographic.
-// 							if (deaths[deathId].gender == "male") {
-// 								maleCount++;
-// 							} else {
-// 								femaleCount++;
-// 							}
-// 							ageCount[deaths[deathId].age]++;
-							
-// 							// Increment to the next individual death record.
-// 							deathId++;
-// 						}
-						
-// 						deathDays.push ({
-// 							day: day,
-// 							deathdate: data[day].date,
-// 							total: totalCount,
-// 							male: maleCount,
-// 							female: femaleCount,
-// 							age: ageCount
-// 						});
-						
-// 					}
-
-// 					graphXScale.domain([0, 41])
-// 						.range([30, 500]);
-// 					graphYScale.domain([0, 160])
-// 						.range([475, 10]);
-						
-// 					addDeathsToMap();
-// 					drawDeathsGraphLines();
-// 					drawDeathsGraph();
-					
-// 					// displayTotal();
-// 				});
-
+				});
 	</script>
 </body>
 
