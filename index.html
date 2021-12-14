@@ -1,484 +1,811 @@
-
 <!DOCTYPE html>
-<html>
-<head>
-	<meta charset="utf-8">
-	<title>Snow Cholera Map - Project 1</title>
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
-	<script type="text/javascript" src="https://d3js.org/d3.v3.min.js"></script>
-	<style>
-		.choleraMap {
-			transform: rotate(1.3deg);
-			position: relative;
-		}
-
-		body {
-			font-family: 'Roboto', sans-serif;
-		}
-
-		#street {
-			stroke: slategray;
-			stroke-width: 1.5px;
-			fill: none;
-		}
-		.death {
-			stroke: none;
-		}
-
-		.death:hover {
-			fill: rgb(84, 140, 0);
-			r: 7;
-		}
-
-
-		text {
-			font-size: 14px;
-			font-family: 'Roboto', sans-serif;
-		}
-
-		#graph {
-			min-width: 400px;
-			min-height: 400px;
-			/* margin-left: 50px; */
-		}
-
-		button {
-			height: 40px;
-			position: absolute;
-			top: 690px;
-			width: 100px;
-		}
-
-		#button_1 {
-			left: 300px;
-		}
-		#button_2 {
-			left: 400px;
-		}
-		#button_3 {
-			left: 500px;
-		}
-
-		path {
-			opacity: 50%;
-		}
-
-		#mapLegend {
-			position: absolute;
-			padding: 10px;
-			border: 3px solid #444;
-			height: 100px;
-			width: 120px;
-			top: 750px;
-			left: 275px;
-		}
-		#genderLegend {
-			position: absolute;
-			padding: 10px;
-			border: 3px solid #444;
-			height: 100px;
-			width: 120px;
-			top: 750px;
-			left: 425px;
-		}
-		#ageLegend {
-			position: absolute;
-			padding: 10px;
-			border: 3px solid #444;
-			height: 150px;
-			width: 120px;
-			top: 750px;
-			left: 575px;
-		}
-
-		.maleLineDeath {
-			fill:#03c6fc;
-			opacity: 50
-		}
-		.femaleLineDeath {
-			fill:#e703fc;
-			opacity: 50%
-		}
-
-		.streetName {
-			font-size: 10px;
-		}
-
-		#soho {
-			font-size: 20px;
-			font-weight: 800;
-		}
-		
-
-	</style>
-</head>
-<body>
-	<a href="https://docs.google.com/document/d/1UMVWXcfFVdLccNNJ_wNFj_Uwm1KtAJCDJucJI1dXFHk/edit?usp=sharing">Documentation</a>
-	<a href="https://www.youtube.com/watch?v=mfJf52USgeY">YouTube</a>
-		<h2 style="display:flex; justify-content: center; color: #444444">John Snow Cholera Map</h2>
-		<h3 style="display:flex; justify-content: center; text-align: center; color: #444444">One of the most important visualizations in history, John Snow's visualization was not only revolutionary <br> in the world of data science, but it also saved lives.
-		He did all of this despite not having access to the tools that we have access to today. <br>
-		Even with these tools, it will be a rare feat for one to accomplish what Snow did in his time.</h3>
-		<div style="display: flex; justify-content: center;">
-		<svg class="choleraMap" height="500" width="500">
-		</svg>
-		<svg class="graph"  height="550" width="500">
-		</svg>
-		<button id="button_1" onClick="showGender()">Show Gender</button>
-		<button id="button_2" onClick="displayAge()">Show Ages</button>
-		<button id="button_3" onClick="clearStyle()">Clear</button>
-		<div id="mapLegend"><strong>Map Legend</strong>
-			<li style="color: black; padding-top: 10px;">Pump</li>
-			<li style="color: #ff0033;">Death</li>
-		</div>
-		<div id="genderLegend"><strong>Gender Legend</strong>
-			<li style="color: #03c6fc; padding-top: 10px;">Male</li>
-			<li style="color: #e703fc;">Female</li>
-		</div>
-		<div id="ageLegend"><strong>Age Legend</strong>
-			<li style="color: #1b9e77; padding-top: 10px;">0-10</li>
-			<li style="color: #d95f02;">11-20</li>
-			<li style="color: #7570b3;">21-40</li>
-			<li style="color: #e7298a;">41-60</li>
-			<li style="color: #66a61e">61-80</li>
-			<li style="color: #e6ab02;">over 80</li>
-			<svg width="600" height="500"></svg>
-		</div>
-	</div>
-		
-
-	
-	<script>
-		const choleraMap = d3.select(".choleraMap");
-		const MAP_WIDTH = 500;
-		const MAP_HEIGHT = 500;
-		const minimum_death = 0;
-		const deathCount = []
-		var deaths = [];
-		var deathDays = [];
-		let deathGraph = d3.select(".graph");
-		let graphWidth = 500;
-		let graphHeight = 500;
-		let svg_female = {};
-		let svg = d3.select('body').append('svg.graph')
-		var createLine = d3.svg.line()
-		
-		
-    var streets = [];
-		var pumps = [];
-		let ages = [
-			{
-				age_range: '0-10',
-				fill: '#1b9e77'
-			},
-			{
-				age_range: '11-20',
-				fill: '#d95f02'
-			},
-			{
-				age_range: '21-40',
-				fill: '#7570b3'
-			},
-			{
-				age_range: '41-60',
-				fill: '#e7298a'
-			},
-			{
-				age_range: '61-80',
-				fill: '#66a61e'
-			},
-			{
-				age_range: '> 80',
-				fill: '#e6ab02'
-			}
-		];
-		
-		let scaleX = d3.scale.linear();
-		let scaleY = d3.scale.linear();
-		let xScaleForGraph = d3.scale.linear();
-		let yScaleForGraph = d3.scale.linear();
-		
-
-		scaleX.domain([3,20]).range([0, MAP_WIDTH]);
-		scaleY.domain([3,20]).range([MAP_HEIGHT, 0]);
-
-		function drawGraph() {
-			let x = d3.svg.axis()
-				.orient('bottom')
-				.scale(xScaleForGraph)
-				.tickFormat(function(d) {
-					return deathDays[d].date;
-				});
-
-			let y = d3.svg.axis()
-			.orient('left')
-				.scale(yScaleForGraph)
-
-			deathGraph.append('g')
-				.attr('class', 'axis')
-				.attr('transform', 'translate(0, 475)')
-				.call(x);
-
-			deathGraph.append('g')
-				.attr('class', 'axis')
-				.attr('transform', 'translate(30)')
-				.call(y);
-			}
-
-	//Set up functions that will help create map
-		const mapSetup = d3.svg.line()
-			.x(function(d) { return scaleX(d.x); })
-			.y(function(d) { return scaleY(d.y); })
-
-	//Load deaths data and push the data into the deaths array that will be an object containing x and y values
-    d3.csv("deaths_age_sex.csv", function(data) {
-      for (let i=0; i < data.length; i++) {
-        deaths.push(
-          {
-            x: data[i].x,
-            y: data[i].y,
-            age: +data[i].age,
-						gender: data[i].gender == 0 ? "male" : "female",
-						
-          }
-        );
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>WFH vs WFO Analysis</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
+      crossorigin="anonymous"
+    />
+    <script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.2/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+      html {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+        -webkit-text-size-adjust: 100%;
+        height: 100%;
       }
-			
-  // Load pump data and push it into the empty pump array to be read later in the function putting them on the map    
-      });
-    d3.csv("pumps.csv", function(data) {
-      for (let i=0; i < data.length; i++) {
-        pumps.push(
-          {
-            x: data[i].x,
-            y: data[i].y,
+
+      body {
+        padding: 0;
+        margin: 0;
+        font-size: 16px;
+        height: 100%;
+        background-color: rgb(255, 255, 255)
+      }
+
+      h1 {
+        margin: 0;
+        color: rgb(39, 54, 35);
+        background: rgb(194, 194, 194);
+        text-align: center;
+        font-size: 40px;
+        padding: 20px;
+        font-weight:bold;
+      }
+
+      ul {
+        list-style: none;
+        display: grid;
+        grid-template-columns: repeat(3, 200px);
+        grid-gap: 40px;
+        justify-content: center;
+        margin: 0;
+        padding: 40px 0;
+      }
+
+
+      ul a {
+        display: block;
+        color: #fff;
+        background: rgb(44, 70, 38);
+        padding: 10px;
+        text-decoration: none;
+        border-radius: 15px;
+        text-align: center;
+        font-size: 14px;
+      }
+
+      ul a:hover {
+        font-weight: 700;
+        opacity: 0.75;
+      }
+
+      h2 {
+        text-align: center;
+        font-size: 25px;
+        margin: 20px 0;
+      }
+
+      .axis path,
+      .axis line {
+        fill: none;
+        stroke: black;
+        shape-rendering: crispEdges;
+      }
+
+      .tick text {
+        fill: black;
+        font-size: 11px;
+      }
+
+      .chart {
+        width: 600px;
+        height: 600px;
+        margin: 0 auto;
+        display: block;
+      }
+
+      rect {
+        stroke: white;
+      }
+
+      circle {
+        fill: #dfb8ff;
+      }
+
+      
+
+      .col-lg-7 {
+        text-align: center;
+      }
+      .h-50 {
+        height: 50%;
+      }
+      .h-25 {
+        height: 25%;
+      }
+      .footer {
+        font-size: 12px;
+        font-style: italic;
+        text-align: center;
+        padding: 40px;
+      }
+
+      .donut-legend {
+        border: 1px solid #000;
+        text-align: start;
+        padding-left: 20px;
+        font-weight: 800;
+      }
+
+      .tool {
+        background-color: #eeffa1; 
+        width: 200px; 
+        border-radius: 10px;
+        font-weight: 800;
+      }
+      .bar.tool {
+        width: 300px; 
+      }
+
+      .intro{
+        width: 75%;
+        margin: auto;
+        margin-bottom: 20px;
+        color:#070707;
+        background-color: #bcd4b9;
+        padding: 20px;
+        border-radius: 10px; 
+        border: 2px solid black;
+        font-weight: bold;
+      }
+
+      .cardeebee{
+        width: 75%;
+        margin: auto;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        color:#070707;
+        background-color: #dadada;
+        padding: 20px, 20px, 20px, 20px;
+        border-radius: 10px; 
+        border: 2px solid black;
+        font-weight: bold;
+      }
+
+      .hero{
+        justify-content: center;
+        margin: auto;
+      }
+
+      .nav{
+        justify-content: center;
+        background-color: #dadada;
+        margin-bottom: 30px;
+        font-weight:bold;
+      }
+
+      .buttons{
+        margin: auto;
+        padding-top:20%;
+        padding-right:10%;
+        float: right;
+        text-align: center;
+      }
+
+      .barChart{
+        float:left;
+        padding-bottom: 20px;
+      }
+
+    </style>
+  </head>
+
+  <body>
+    <div id="tooltip"></div>
+    <div>
+      <h1>Work From Home vs Work From Office Analysis</h1>
+      <div class="row">
+        <img src="wfh_banner.png">
+      </div>
+      <div class="nav">
+      <ul>
+        <li>
+          <a href="index.html">Visualization</a>
+        </li>
+
+        <li>
+          <a href="documentation.html">Documentation</a>
+        </li>
+        <li>
+          <a href="video.html">Video</a>
+        </li>
+      </ul>
+    </div>
+    </div>
+    <div class="container-fluid">
+      <div class="row" id="introText">
+          <body>
+            <div class="intro">
+              <h2>Introduction</h2>
+              <p>
+              Since the COVID-19 pandemic outbreak, a vast majority of office jobs have transitioned
+              from in-office to a remote setting to prevent the spread of the virus, ensure the safety of the
+              employees, and abide by the federal and state government safety mandates. This transition
+              from an office setting to a work-from-home environment has affected the lives of remote
+              employees beyond their 9-5 responsibilities. Using this dataset, we seek to better understand
+              how a remote work environment has affected the individuals surveyed on both a professional
+              and personal level through visualizing the data. These visualizations provide insight into the
+              factors that influence an employee’s success in a remote work environment.
+              </p>
+              
+              <p>
+              The following visualizations were created using Javascript d3 and a survery dataset from Kaggle
+              where the researcher interviewed 207 subjects to analyze the effects of working from home on both 
+              their personal and professional lives. More information on the dataset can be found on the "Documentation" page.
+              </p>
+
+              </div>
+          </body>
+        </div>
+        <div class="row" >
+          <div class="cardeebee">
+            <h2>Work From Home Preference</h2>
+          <div class="buttons">
+
+            Hover over the bars<br>to see the exact counts
+
+            <h4 style="padding-top:30px;">Filter by Gender:</h4>
+            <button type="button" class="btn btn-success" id="all" onclick="drawPreference()">All</button>
+            <button type="button" class="btn btn-primary" id="males" onclick="drawPreference('males')">Males</button>
+            <button type="button" class="btn btn-danger" id="females" onclick="drawPreference('females')">Females</button>
+          </div>
+            <div class="barChart" id="barChart" style="text-align: center; margin-top: 30px">
+        <div style="font-weight: 900;
+                    font-size: 20px;">
+                  WFH vs. WFO Preference By Profession
+                </div>
+            <div class="map" id="main-viz">
+              <div class="row" style="justify-content: center">
+                <div id="wfh_pref_tool" class="tool"><br></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cardeebee">
+      <div class="row">
+        <div class="col-lg-12">
+          <div style="text-align: center; margin-top: 30px">
+            <h2>Work From Home Productivity With Kids</h2>
+            <div style="display: flex; justify-content: space-around; margin: 0 400px">
+              <button type="button" class="btn btn-success" id="all" onclick="changeGender()">All</button>
+            <button type="button" class="btn btn-primary" id="males" onclick="changeGender(1)">Males</button>
+            <button type="button" class="btn btn-danger" id="females" onclick="changeGender(2)">Females</button>
+            </div>
+            <div class="row">
+              <div class="col-lg-6">
+                <div
+                  class="row"
+                  style="
+                    justify-content: center;
+                    font-weight: 900;
+                    font-size: 20px;
+                  "
+                >
+                  Level of Productivity
+                </div>
+                <div class="row" style="justify-content: center">
+                <div id="pref_tool" class="tool"><br></div></div>
+                <div
+                  class="row"
+                  style="justify-content: center; margin-bottom: -30px; "
+                >
+                  Click on section to see proportion of individuals with kids
+                </div>
+                <svg width="500" height="400" id="cs_chart" style="cursor: pointer;"></svg>
+                <div class="row" style="justify-content: center">
+                  <div class="col-lg-6">
+                    <div class="donut-legend">
+                      PRODUCTIVITY
+                      <li style="color: #4daf4a">1 (Very Productive)</li>
+                      <li style="color: #377eb8">2 (Productive)</li>
+                      <li style="color: #ff7f00">3 (Neutral)</li>
+                      <li style="color: #984ea3">4 (Unproductive)</li>
+                      <li style="color: #e41a1c">5 (Very Unproductive)</li>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-lg-6">
+                <div
+                  class="row"
+                  style="
+                    justify-content: center;
+                    font-weight: 900;
+                    font-size: 20px;
+                    margin-bottom: -10px;
+                  "
+                >
+                  Share of those with kids
+                </div>
+                <div class="row" style="justify-content: center">
+                <div id="kid_tool" class="mt-2 tool" ><br></div></div>
+                <svg
+                  class="mainVis"
+                  id="chart"
+                  font-size="10px"
+                  width="500"
+                  height="400"
+                ></svg>
+                <div class="row" style="justify-content: center">
+                  <div class="col-lg-6">
+                    <div class="donut-legend">
+                      KIDS VS. NO KIDS
+                      <li style="color: #ff0033">Kids</li>
+                      <li style="color: #0dbf00">No Kids</li>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+        </div>
+        <div class="row" style="justify-content: center">
+          <div class="cardeebee">
+          <div class="col-12">
+            <div style="text-align: center; margin-top: 30px" >
+              <h2>Factors That Influence Those Who Are Calmer WFH</h2>
+              <div class="row" style="justify-content: center">
+              <div id="bar_tool" class="bar tool"><br></div></div>
+              <svg width="700" height="400" id="bar_chart"></svg>
+            </div>
+          </div>
+        </div>
+        <div class="row" style="justify-content: center">
+            <div class="cardeebee" style="overflow:hidden">
             
-          }
-        );
-      }
+              <!--graph previously from iFrame goes here-->
+            
+            </iframe>
+            </div>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <script>
+     
+
+      var margin = { top: 40, right: 40, bottom: 60, left: 50 },
+      height = 425 - margin.top - margin.bottom,
+        width = 690 - margin.left - margin.right;
         
+
+      var svg = d3
+        .select("#bar_chart")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+     
+      let results = [
+        { id: "Improved Skillset", value: 0 },
+        { id: "Work/Life Balance", value: 0 },
+        { id: "More Productive", value: 0 },
+        { id: "Laziness", value: 0 },
+        { id: "Professional Growth", value: 0 },
+      ];
+      let improved_skillset = 0;
+      let work_balance = 0;
+      let more_productive = 0;
+      let laziness = 0;
+      let professional_growth = 0;
+      let stressed = 81;
+      let calmer = 0;
+
+//---------------------------------------------------------------------
+      d3.csv("WFH_WFO_dataset.csv", function (data) {
+        for (var i = 0; i < data.length; i++) {
+          
+          str = data[i].calmer_stressed;
+          skills = data[i].RM_improved_skillset;
+          
+          balance = data[i].RM_better_work_life_balance;
+          prod = data[i].RM_productive;
+          lazy = data[i].RM_lazy;
+          growth = data[i].RM_professional_growth;
+          if (str == "CALMER") {
+            calmer++;
+            results[0].value = results[0].value + +skills;
+            results[1].value = results[1].value + +balance;
+            results[2].value = results[2].value + +prod;
+            results[3].value = results[3].value + +lazy;
+            results[4].value = results[4].value + +growth;
+          } 
+
+          calmerBar();
+        }
       });
+      //Consulted Mike Bostock's bar chart example here: https://bl.ocks.org/mbostock/3885304
+      function calmerBar() {
+        let x = d3
+          .scaleBand()
+          .range([0, width])
+          .domain(
+            results.map(function (d) {
+              return d.id;
+            })
+          )
+          .padding(0.2);
+        svg
+          .append("g")
+          .attr("transform", "translate(0," + height + ")")
+          .call(d3.axisBottom(x));
 
-		
-	//Load streets data and use a for loop that will leverage map functions to add the streets
-		d3.json("streets.json", function(data) {
-			streets = data;
-			
-			for (let i=0; i < streets.length; i++) {
-				choleraMap.append("path")
-					.attr("d", mapSetup(streets[i]))
-					.attr("id", "street");
-			}
-			addDeathsToMap();
-			addPumpsToMap();
-		});
+        let y = d3.scaleLinear().domain([0, 5]).range([height, 0]);
+        svg.append("g").call(d3.axisLeft(y));
 
-	//Add circles to the map representing each death in the death array
-    function addDeathsToMap() {
-			choleraMap.selectAll('.death')
-				.data(deaths)
-				.enter()
-				.append('circle')
-				.attr('r', 3)
-				.attr('id', 'death')
-				.attr('class', function(d) {
-					return " " +
-						"age" + d.age + " " 
-				})
-				.attr('data-gender', function(d) {
-					return "" +
-						d.gender + ""
-				})
-				.attr('fill', '#FF0033')
-				.attr('cx', function(d) { return scaleX(d.x); })
-				.attr('cy', function(d) { return scaleY(d.y); })
-				.on("mouseover", handleMouseOver)
-				// .on("mouseout", handleMouseOut)
-		}
+        svg
+          .selectAll()
+          .data(results)
+          .enter()
+          .append("rect")
+          .attr("x", function (d) {
+            return x(d.id);
+          })
+          .attr("y", function (d) {
+            return y(d.value / stressed);
+          })
+          .attr("width", x.bandwidth())
+          .attr("height", function (d) {
+            return height - y(d.value / stressed);
+          })
+          .attr("fill", "#ff0033")
+          .attr("class", function (results) {
+            return `${results.id}`;
+          })
+          .on("mouseover", (d => barToolTip(d.value / stressed)))
+      }
 
-		d3.json("streets.json", function(data) {
-			streets = data;
-			
-			for (let i=0; i < streets.length; i++) {
-				choleraMap.append("path")
-					.attr("d", mapSetup(streets[i]))
-					.attr("id", "street");
-			}
-			addDeathsToMap();
-			addPumpsToMap();
-			// drawDeathsGraph()
-		});
-    
-	function addPumpsToMap() {
-		choleraMap.selectAll('.pump')
-				.data(pumps)
-				.enter()
-				.append('circle')
-				.attr('r', 6)
-				.attr('class', 'pump')
-				.attr('fill', '#444444')
-				.attr('cx', function(d) { return scaleX(d.x); })
-				.attr('cy', function(d) { return scaleY(d.y); })
-		}
+      var kids = [
+        { id: 0, yes: 0, no: 0 },
+        { id: 1, yes: 0, no: 0 },
+        { id: 2, yes: 0, no: 0 },
+        { id: 3, yes: 0, no: 0 },
+        { id: 4, yes: 0, no: 0 },
+      ];
 
-		function handleMouseOver() {
-			choleraMap.selectAll('.death')
-     	.append('rect')
-			 .attr('width', 10)
-			 .attr('height', 10)
-			 .attr('fill', )
-		}
+      var productivity = [
+        { id: 0, total: 0 },
+        { id: 1, total: 0 },
+        { id: 2, total: 0 },
+        { id: 3, total: 0 },
+        { id: 4, total: 0 },
+      ];
 
-		choleraMap.append("text")
-  			.attr("class", "streetName")
-  			.attr("transform", "translate(150,200) rotate(-21)")
-  			.text("Great Marlborough Street");
+      function changeGender(id) {
+        changeKids(id)
+        changeProd(id)
+      }
 
-		choleraMap.append("text")
-  			.attr("class", "streetName")
-  			.attr("transform", "translate(150,115) rotate(-10)")
-  			.text("Oxford Street");
+      function changeKids(id) {
+        for (i = 0; i < 5; i++){
+          kids[i].yes = 0, kids[i].no = 0
+        }
+        d3.csv("WFH_WFO_dataset.csv", function (data) {
+          if (id === 1) {
+          var new_data = data.filter(e => e.Gender.includes("Male"))
+        } else if (id === 2) {
+          var new_data = data.filter(e => e.Gender.includes("Female"))
+        }
+          for (var i = 0; i < new_data.length; i++) {
+            kid = new_data[i].kids;
+            prod = new_data[i].RM_productive;
+            if (prod == 1) {
+              if (kid == "Yes") {
+                kids[0].yes++;
+              } else {
+                kids[0].no++;
+              }
+            } else if (prod == 2) {
+              if (kid == "Yes") {
+                kids[1].yes++;
+              } else {
+                kids[1].no++;
+              }
+            } else if (prod == 3) {
+              if (kid == "Yes") {
+                kids[2].yes++;
+              } else {
+                kids[2].no++;
+              }
+            } else if (prod == 4) {
+              if (kid == "Yes") {
+                kids[3].yes++;
+              } else {
+                kids[3].no++;
+              }
+            } else {
+              if (kid == "Yes") {
+                kids[4].yes++;
+              } else {
+                kids[4].no++;
+              }
+            }
+          }
+          drawKids(id)
+          
+          
+        });
+      }
+      changeGender()
 
-		choleraMap.append("text")
-  			.attr("class", "streetName")
-  			.attr("transform", "translate(200,205) rotate(-10)")
-  			.text("Workhouse");
+        function drawKids(id) {
+        var kid_stat = [
+          { id: "Kids", response: kids[id].yes },
+          { id: "No kids", response: kids[id].no },
+        ];
+        var svg = d3.select("#chart"),
+          width = svg.attr("width"),
+          height = svg.attr("height");
+        var g = svg
+          .append("g")
+          .attr("transform", `translate(${width / 2}, ${height / 2})`);
+        var p = d3.pie().value((d) => d.response);
+        var scale = d3.scaleOrdinal(["#ff0033", "#0dbf00"]);
+        var label = d3.scaleOrdinal(["Kids", "No kids"]);
+        var arc = g.selectAll("arc").data(p(kid_stat)).enter();
+        var path = d3.arc().outerRadius(100).innerRadius(150);
+        arc
+          .append("path")
+          .attr("d", path)
+          .attr("class", (d) => label(d.data.id))
+          .attr("fill", (d) => scale(d.data.id))
+          .on("mouseover", (d => kidsToolTip(d.data.response)))
+          
+      }
 
-		choleraMap.append("text")
-  			.attr("class", "streetName")
-  			.attr("transform", "translate(250,255) rotate(-25)")
-				.attr("z-index", "1000")
-  			.text("Broad Street");
-		choleraMap.append("text")
-  			.attr("id", "soho")
-  			.attr("transform", "translate(400,155) rotate(-25)")
-				.attr("z-index", "1000")
-  			.text("SOHO");
+      function changeProd(id) {
+        productivity[0].total = 0;
+        productivity[1].total = 0;
+        productivity[2].total = 0;
+        productivity[3].total = 0;
+        productivity[4].total = 0;
+        d3.csv("WFH_WFO_dataset.csv", function (data) {
+          if (id === 1) {
+          var new_data = data.filter(e => e.Gender.includes("Male"))
+        } else if (id === 2) {
+          var new_data = data.filter(e => e.Gender.includes("Female"))
+        } else {
+          var new_data = data
+        }
+          for (var i = 0; i < new_data.length; i++) {
+            prod = new_data[i].RM_productive;
+            if (prod == 1) {
+              productivity[0].total++;
+            } else if (prod == 2) {
+              productivity[1].total++;
+            } else if (prod == 3) {
+              productivity[2].total++;
+            } else if (prod == 4) {
+              productivity[3].total++;
+            } else {
+              productivity[4].total++;
+            }
+          }
+          drawProductivity()
+          changeKids(2)
+        });
+      }
 
-		function showGender() {
-			choleraMap.selectAll('[data-gender="male"]').attr('fill','#03c6fc');
-			choleraMap.selectAll('[data-gender="female"]').attr('fill','#e703fc');
-			createLine
-				.x(function(d) { return xScaleForGraph(d.day); })
-				.y(function(d) { return yScaleForGraph(d.male); });
+      function drawProductivity() {
+        var svg = d3.select("#cs_chart"),
+          width = svg.attr("width"),
+          height = svg.attr("height");
+        var g = svg
+          .append("g")
+          .attr("transform", `translate(${width / 2}, ${height / 2})`);
+        var scale = d3.scaleOrdinal([
+          " #4daf4a",
+          "#377eb8",
+          "#ff7f00",
+          "#984ea3",
+          "#e41a1c",
+        ]);
+        var label = d3.scaleOrdinal(["1", "2", "3", "4", "5"]);
+        var pie = d3.pie().value((d) => d.total);
+        var arc = g.selectAll("arc").data(pie(productivity)).enter();
+        var path = d3.arc().outerRadius(100).innerRadius(150);
+        arc
+          .append("path")
+          .attr("d", path)
+          .attr("class", (d) => label(d.data.id))
+          .attr("fill", (d) => scale(d.data.id))
+          .on("click", function(d){
+            drawKids(d.data.id);
+            kidsToolTip('');
+})
+          // .on("click", (d) => drawKids(d.data.id))
+          // .on("click", (d) => kidsToolTip(''))
+          .on("mouseover", (d => prefToolTip(d.data.total)))
+      }
 
-			deathGraph.append('path')
-				.attr('d', createLine(deathDays))
-				.attr("class", "maleLineDeath")
-			
-			createLine
-				.x(function(d) { return xScaleForGraph(d.day); })
-				.y(function(d) { return yScaleForGraph(d.female); });
-
-			deathGraph.append('path')
-				.attr('d', createLine(deathDays))
-				.attr("class", "femaleLineDeath")
-			}	
-		
-
-		function clearStyle() {
-				location.reload();
-		}
-
-		function displayAge() {
-			for (let i=0; i < ages.length; i++) {
-				choleraMap.selectAll('.age' + i)
-					.attr('fill', ages[i].fill);
-			}
-			for (let i=0; i < ages.length; i++) {
-				let createLine = d3.svg.line()
-					.x(function(d) { return xScaleForGraph(d.day); })
-					.y(function(d) { return yScaleForGraph(d.age[i]); });
-
-				deathGraph.append('path')
-					.attr('id', 'graphlineage' + i)
-					.attr('d', createLine(deathDays));
-
-					for (let i=0; i < ages.length; i++) {
-						deathGraph.select('#graphlineage' + i)
-					.attr('fill', ages[i].fill);
-
-			}
-		}
-			}
-		
-
-
-		function drawDeath() {
-				createLine
-				.x(function(d) { return xScaleForGraph(d.day); })
-				.y(function(d) { return yScaleForGraph(d.total); });
-
-			deathGraph.append('path')
-				.attr('d', createLine(deathDays))
-				.on("mouseover", handleMouseOver)
-			}	
-
-
-		function drawGraph() {
-		let x = d3.svg.axis()
-			.orient('bottom')
-			.scale(xScaleForGraph)
-			.tickFormat(function(d) {
-				return deathDays[d].date;
-			});
-
-		let y = d3.svg.axis()
-		.orient('left')
-			.scale(yScaleForGraph)
-
-		deathGraph.append('g')
-			.attr('class', 'axis')
-			.attr('transform', 'translate(0, 475)')
-			.call(x);
-
-		deathGraph.append('g')
-			.attr('class', 'axis')
-			.attr('transform', 'translate(30)')
-			.call(y);
-		}
-
-		d3.csv("deathdays.csv", function(data) {
-		let deathId = 0;
-		for (let day = 0; day < data.length; day++) {
-			let totalCount = +data[day].deaths;
-			let men = 0;
-			let women = 0;
-			let ageCount = [0,0,0,0,0,0];
-			for (let i=0; i < totalCount; i++) {
-				if (deaths[deathId].gender == "male") {
-					men++;
-				} else {
-					women++;
-				}
-				ageCount[deaths[deathId].age]++;
-				deathId++;
-			}	
-			deathDays.push ({
-				day: day,
-				date: data[day].date,
-				total: totalCount,
-				male: men,
-				female: women,
-				age: ageCount
-			});
-			
-		}
-
-		xScaleForGraph.domain([0, 41])
-			.range([30, 500]);
-			yScaleForGraph.domain([0, 160])
-			.range([475, 10]);
-			
-		addDeathsToMap();
-		drawDeath();
-		drawGraph();
-					
-				});
-	</script>
-</body>
+      drawProductivity();
 
 
+function drawPreference(gender){
+
+    if(gender == "males"){
+        filename = "wfo_wfh_preference_females.csv";
+    } else if(gender == "females"){
+        filename = "wfo_wfh_preference_males.csv";
+    } else {
+        filename = "wfo_wfh_preference.csv";
+    }
+
+
+        d3.csv(filename, function (data) {
+
+        // set the dimensions and margins of the graph
+        var margin = { top: 10, right: 30, bottom: 20, left: 50 },
+          width = 460 - margin.left - margin.right,
+          height = 400 - margin.top - margin.bottom;
+
+        var height = 400;
+
+        var remove_svg = d3.select("#the_svg");
+
+        remove_svg.remove();
+
+
+        var svg = d3
+          .select("#main-viz")
+          .append("svg")
+          .attr("id", "the_svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+          .attr("transform", "translate(50,10)");
+
+        var subgroups = data.columns.slice(1);
+
+        var groups = d3
+          .map(data, function (d) {
+            return d.group;
+          })
+          .keys();
+
+        // add X axis
+        var x = d3.scaleBand().domain(groups).range([0, width]).padding([0.2]);
+
+        svg
+          .append("g")
+          .attr("transform", "translate(0," + height + ")")
+          .call(d3.axisBottom(x).tickSize(0));
+
+        // add Y axis
+        var y = d3.scaleLinear().domain([0, 30]).range([height, 0]);
+
+        svg.append("g").call(d3.axisLeft(y));
+
+        svg
+          .append("text")
+          .attr("x", 40)
+          .attr("y", 40)
+          .text("Count")
+          .attr("transform", "translate(-25, 40)")
+          .attr("transform", "rotate(90)");
+
+        // scale for subgroup position
+        var xSubgroup = d3
+          .scaleBand()
+          .domain(subgroups)
+          .range([0, x.bandwidth()])
+          .padding([0.05]);
+
+        // color pallet
+        var color = d3
+          .scaleOrdinal()
+          .domain(subgroups)
+          .range(["#FFA500", "#0000FF"]);
+
+        // show bars
+        svg
+          .append("g")
+          .selectAll("g")
+          .data(data)
+          .enter()
+          .append("g")
+          .attr("transform", function (d) {
+            return "translate(" + x(d.group) + ",0)";
+          })
+          .selectAll("rect")
+          .data(function (d) {
+            return subgroups.map(function (key) {
+              return { key: key, value: d[key] };
+            });
+          })
+          .enter()
+          .append("rect")
+          .attr("x", function (d) {
+            return xSubgroup(d.key);
+          })
+          .attr("y", function (d) {
+            return y(d.value);
+          })
+          .attr("width", xSubgroup.bandwidth())
+          .attr("height", function (d) {
+            return height - y(d.value);
+          })
+          .attr("fill", function (d) {
+            return color(d.key);
+          })
+          .on("mouseover", (d => wfhPrefToolTip(d.value)))
+
+        // append legend
+
+        // create a list of keys
+        var keys = ["Work From Home", "Work From Office"];
+
+        // Add one dot in the legend for each name.
+        var size = 20;
+        svg
+          .selectAll("myRects")
+          .data(keys)
+          .enter()
+          .append("rect")
+          .attr("x", 10)
+          .attr("y", function (d, i) {
+            return 2 + i * (size + 5);
+          }) // 100 is where the first dot appears. 25 is the distance between dots
+          .attr("width", size)
+          .attr("height", size)
+          .style("fill", function (d) {
+            return color(d);
+          });
+
+        // Add one dot in the legend for each name.
+        svg
+          .selectAll("label")
+          .data(keys)
+          .enter()
+          .append("text")
+          .attr("x", 10 + size * 1.2)
+          .attr("y", function (d, i) {
+            return 2 + i * (size + 5) + size / 2;
+          }) // 100 is where the first dot appears. 25 is the distance between dots
+          .style("fill", function (d) {
+            return color(d);
+          })
+          .text(function (d) {
+            return d;
+          })
+          .attr("text-anchor", "left")
+          .style("alignment-baseline", "middle")
+          .style("font-size", "15px");
+          
+      });
+    }
+    drawPreference();
+
+// ------------------------------------------------------------------------------
+
+      function barToolTip(value) {
+        selection = document.getElementById('bar_tool')
+        selection.innerHTML= '';
+        selection.appendChild(document.createTextNode("Average response: " + parseFloat(value).toFixed(2))) 
+      }
+      function kidsToolTip(value) {
+        
+        selection = document.getElementById('kid_tool')
+        selection.innerHTML= '';
+        
+        selection.appendChild(document.createTextNode(value === '' ? "Response:" : "Response: " + value)) 
+        }
+      
+      function prefToolTip(value) {
+        selection = document.getElementById('pref_tool')
+        selection.innerHTML= '';
+        selection.appendChild(document.createTextNode("Response: " + value)) 
+      }
+     
+      function wfhPrefToolTip(value) {
+        selection = document.getElementById('wfh_pref_tool')
+        selection.innerHTML= '';
+        selection.appendChild(document.createTextNode("Response: " + value)) 
+      }
+
+    </script>
+  </body>
 </html>
